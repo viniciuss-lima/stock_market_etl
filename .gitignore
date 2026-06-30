@@ -1,0 +1,5 @@
+.env
+data/
+testes.ipynb
+__pycache__/
+tabela_delta/

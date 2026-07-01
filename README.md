@@ -9,7 +9,7 @@ The goal is to build a small data warehouse following the **Bronze → Silver �
 - Python
 - Apache Spark (PySpark)
 - Delta Lake
-- PostgreSQL (work in progress)
+- PostgreSQL
 - Polygon (Massive) API
 - Nasdaq Screener API
 
@@ -44,6 +44,11 @@ Data sources include:
   - Dim Security
   - Dim Date
 
+### Load Layer
+- Creates the PostgreSQL data warehouse schema.
+- Loads Gold layer tables into PostgreSQL.
+- Uses staging tables and `ON CONFLICT` to avoid duplicate records.
+
 ## Project Structure
 
 ```
@@ -55,19 +60,21 @@ data/
 └── gold/
 
 src/
-├── extraction.py
+├── extract.py
 ├── transform.py
-└── connection.py
+├── load.py
+├── connection.py
+└── create_tables.sql
 ```
 
 ## Next Steps
 
-- Load the Gold layer into PostgreSQL.
-- Create the relational schema with primary and foreign keys.
-- Perform SQL-based analytical queries.
-- Develop dashboards for data visualization.
+- Automate the pipeline to run daily.
+- Keep the data warehouse continuously updated.
+- Build SQL analytical queries.
 
 ## Status
 
 This project is still under development.
-The current version focuses on building the ETL pipeline and the Lakehouse architecture. PostgreSQL loading and analytical reporting will be added in the next stage.
+
+The ETL pipeline, Lakehouse architecture, and PostgreSQL loading are already implemented. The next stage is to automate daily data ingestion and build analytical reports.

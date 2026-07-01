@@ -1,14 +1,7 @@
-import os
-import json 
-from datetime import date, timedelta
-from requests import get
-from dotenv import load_dotenv
 from pyspark.sql import functions as F  
 from conection import configure_spark
-from time import sleep
 #os.environ["HADOOP_HOME"] = r"C:\Hadoop"
 #os.environ["PATH"] += os.pathsep + r"C:\Hadoop\bin"
-
 
 def silver_layer(spark):
     df_ohlc = spark.read.format("delta").load("data/bronze/raw_ohlc")
@@ -81,7 +74,9 @@ def silver_layer(spark):
                     .withColumn("volume_per_transactions", F.round(F.col("volume")/F.col("transactions"), 2)) \
                     .withColumn("financial_volume", F.round(F.col("volume") * F.col("volume_weighted"), 2)) \
                     .withColumn("is_positive_day", F.col("close_price") >= F.col("open_price"))
-    
+    df_market_data = df_market_data.withColumnRenamed("marketCap","market_cap")
+    df_market_data = df_market_data.withColumn("market_cap", F.col("market_cap").cast("double"))
+
     df_security = df_integrated.select("ticker", "name", "primary_exchange", "type", "country", "ipoyear", "industry", "sector")
     df_security = df_security.withColumn("industry_id", F.md5(F.col("industry")))
     df_security = df_security.withColumn("sector_id", F.md5(F.col("sector")))
@@ -144,4 +139,5 @@ def gold_layer(spark):
 
 if __name__ == "__main__":
     spark = configure_spark()
+    silver_layer(spark)
     gold_layer(spark)

@@ -11,14 +11,14 @@ load_dotenv()
 api_key = os.getenv("API_KEY")
 
 def get_daily_market_summary():
-    today = date.today()
-    days_ago = today - timedelta(days=1)
-    
+    #today = date.today()
+    #days_ago = today - timedelta(days=1)
+    days_ago = "2026-06-26"
     response = get(f"https://api.massive.com/v2/aggs/grouped/locale/us/market/stocks/{days_ago}?adjusted=true&apiKey={api_key}")
     data = response.json()
-
-    with open('data/staging/ohlc.json', 'w', encoding='utf-8') as file:
-        file.write(json.dumps(data, indent=4))
+    if data['status'] == 'OK' and data['queryCount'] != 0:
+        with open('data/staging/ohlc.json', 'w', encoding='utf-8') as file:
+            file.write(json.dumps(data, indent=4)) 
 
 def get_common_stocks():
     next_url = "https://api.massive.com/v3/reference/tickers?type=CS&market=stocks&active=true&order=asc&limit=1000&sort=ticker&apiKey=Tptcil65HEpUDo3wCAHPhqaEYDEHMKe7"
@@ -33,7 +33,7 @@ def get_common_stocks():
             next_url = f"{next_url}&apiKey={api_key}"
 
         list.append(data)
-        sleep(10)
+        sleep(20)
 
     with open("data/staging/cs.json", "w", encoding="utf-8") as file:
         file.write(json.dumps(list, indent=4))
@@ -51,7 +51,7 @@ def get_american_depositary_receipt_common():
             next_url = f"{next_url}&apiKey={api_key}"
 
         list.append(data)
-        sleep(10)
+        sleep(20)
 
     with open("data/staging/adrc.json", "w", encoding="utf-8") as file:
         file.write(json.dumps(list, indent=4))
@@ -79,7 +79,6 @@ def ohlc_to_bronze(spark):
     
     df.write.format("delta").mode("overwrite").save("data/bronze/raw_ohlc")
 
-
 def cs_to_bronze(spark):
     df = spark.read.option("multiline", True).json("data/staging/cs.json")
     df.write.format("delta").mode("overwrite").save("data/bronze/raw_cs")
@@ -101,5 +100,9 @@ def bronze_layer():
     nasdaq_screener_to_bronze(spark)
 
 if __name__ == "__main__":
+   result = get_daily_market_summary()
+   get_common_stocks()
+   get_american_depositary_receipt_common()
+   get_stock_screener()
+
    bronze_layer()
-    

@@ -12,3 +12,6 @@ def configure_spark():
     spark = configure_spark_with_delta_pip(builder).getOrCreate()
 
     return spark
+
+if __name__ == "__main__":
+    configure_spark()    

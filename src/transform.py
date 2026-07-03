@@ -1,5 +1,4 @@
 from pyspark.sql import functions as F  
-from conection import configure_spark
 #os.environ["HADOOP_HOME"] = r"C:\Hadoop"
 #os.environ["PATH"] += os.pathsep + r"C:\Hadoop\bin"
 
@@ -137,7 +136,13 @@ def gold_layer(spark):
     dim_date.write.format("delta").mode("overwrite").save("data/gold/dim_date")
     dim_security.write.format("delta").mode("overwrite").save("data/gold/dim_security")    
 
-if __name__ == "__main__":
-    spark = configure_spark()
+def transform(spark):
+
     silver_layer(spark)
     gold_layer(spark)
+
+if __name__ == "__main__":
+    from connection import configure_spark
+
+    spark = configure_spark()
+    transform(spark)

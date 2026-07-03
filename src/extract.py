@@ -4,28 +4,33 @@ from datetime import date, timedelta
 from requests import get
 from dotenv import load_dotenv
 from pyspark.sql import functions as F  
-from conection import configure_spark
 from time import sleep
 
 load_dotenv()
 api_key = os.getenv("API_KEY")
 
 def get_daily_market_summary():
-    #today = date.today()
-    #days_ago = today - timedelta(days=1)
-    days_ago = "2026-06-26"
-    response = get(f"https://api.massive.com/v2/aggs/grouped/locale/us/market/stocks/{days_ago}?adjusted=true&apiKey={api_key}")
+    one_day_ago = date.today() - timedelta(days=1)
+    #days_ago = "2026-06-26"
+    response = get(f"https://api.massive.com/v2/aggs/grouped/locale/us/market/stocks/{one_day_ago}?adjusted=true&apiKey={api_key}")
+    response.raise_for_status()
+    
     data = response.json()
-    if data['status'] == 'OK' and data['queryCount'] != 0:
+    if data['queryCount'] != 0:
         with open('data/staging/ohlc.json', 'w', encoding='utf-8') as file:
             file.write(json.dumps(data, indent=4)) 
-
+    else:
+        count = data['queryCount']
+        raise ValueError(f"Falha: API retornou queryCount={count}")
+    
 def get_common_stocks():
     next_url = "https://api.massive.com/v3/reference/tickers?type=CS&market=stocks&active=true&order=asc&limit=1000&sort=ticker&apiKey=Tptcil65HEpUDo3wCAHPhqaEYDEHMKe7"
     list = []
 
     while next_url:
         response = get(next_url)
+        response.raise_for_status()
+
         data = response.json()
         next_url = data.get("next_url")
 
@@ -44,6 +49,8 @@ def get_american_depositary_receipt_common():
 
     while next_url:
         response = get(next_url)
+        response.raise_for_status()
+
         data = response.json()
         next_url = data.get("next_url")
 
@@ -65,6 +72,8 @@ def get_stock_screener():
     url = "https://api.nasdaq.com/api/screener/stocks?tableonly=false&limit=25&download=true"
 
     response = get(url, headers=headers)
+    response.raise_for_status()
+
     data = response.json()
 
     with open("data/staging/nasdaq_screener.json", "w", encoding="utf-8") as file:
@@ -91,18 +100,22 @@ def nasdaq_screener_to_bronze(spark):
     df = spark.read.option("multiline", True).json("data/staging/nasdaq_screener.json")
     df.write.format("delta").mode("overwrite").save("data/bronze/raw_nasdaq_screener")
 
-def bronze_layer():
-    spark = configure_spark()
+def extract(spark):
     
+    get_daily_market_summary()
+    get_common_stocks()
+    get_american_depositary_receipt_common()
+    get_stock_screener()
+
+    #spark = configure_spark()
+
     ohlc_to_bronze(spark)
     cs_to_bronze(spark)
     adrc_to_bronze(spark)
     nasdaq_screener_to_bronze(spark)
 
 if __name__ == "__main__":
-   result = get_daily_market_summary()
-   get_common_stocks()
-   get_american_depositary_receipt_common()
-   get_stock_screener()
+    from connection import configure_spark
 
-   bronze_layer()
+    spark = configure_spark()
+    extract(spark)

@@ -2,7 +2,6 @@ from sqlalchemy import create_engine
 from sqlalchemy import text
 from dotenv import load_dotenv
 import os
-from conection import configure_spark
 
 def create_tables(conn):
     with open('src/create_tables.sql', 'r') as file:
@@ -66,8 +65,8 @@ def insert_data(conn, spark):
 
     conn.execute(text("DROP TABLE IF EXISTS stg_fact_market_data"))
     
-def load():
-    spark = configure_spark()
+def load(spark):
+    
     load_dotenv()
 
     db_user = os.getenv("DB_USER")
@@ -83,5 +82,8 @@ def load():
         insert_data(conn, spark=spark)
 
 if __name__ == "__main__":
-   load()
+   from connection import configure_spark
+
+   spark = configure_spark()
+   load(spark)
     

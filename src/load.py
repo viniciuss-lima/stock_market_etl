@@ -14,11 +14,17 @@ def insert_data(conn, spark):
     df_dim_date = spark.read.format("delta").load("data/gold/dim_date")
     df_dim_security = spark.read.format("delta").load('data/gold/dim_security')
 
+    db_user = os.getenv("DB_USER")
+    db_password = os.getenv("DB_PASSWORD")
+    db_host = os.getenv("DB_HOST")
+    db_port = os.getenv("DB_PORT")
+    db_name = os.getenv("DB_NAME")
+    
     df_dim_date.write.format("jdbc") \
-    .option("url", "jdbc:postgresql://localhost:5433/market_data") \
+    .option("url", f"jdbc:postgresql://{db_host}:{db_port}/{db_name}") \
     .option("dbtable", "stg_dim_date") \
-    .option("user", "postgres") \
-    .option("password", "1234") \
+    .option("user", db_user) \
+    .option("password", db_password) \
     .option("driver", "org.postgresql.Driver") \
     .mode("append") \
     .save()
@@ -32,10 +38,10 @@ def insert_data(conn, spark):
     conn.execute(text("DROP TABLE IF EXISTS stg_dim_date"))
 
     df_dim_security.write.format("jdbc") \
-    .option("url", "jdbc:postgresql://localhost:5433/market_data") \
+    .option("url", f"jdbc:postgresql://{db_host}:{db_port}/{db_name}") \
     .option("dbtable", "stg_dim_security") \
-    .option("user", "postgres") \
-    .option("password", "1234") \
+    .option("user", db_user) \
+    .option("password", db_password) \
     .option("driver", "org.postgresql.Driver") \
     .mode("append") \
     .save()
@@ -49,10 +55,10 @@ def insert_data(conn, spark):
     conn.execute(text("DROP TABLE IF EXISTS stg_dim_security"))
 
     df_fact_market_data.write.format("jdbc") \
-    .option("url", "jdbc:postgresql://localhost:5433/market_data") \
+    .option("url", f"jdbc:postgresql://{db_host}:{db_port}/{db_name}") \
     .option("dbtable", "stg_fact_market_data") \
-    .option("user", "postgres") \
-    .option("password", "1234") \
+    .option("user", db_user) \
+    .option("password", db_password) \
     .option("driver", "org.postgresql.Driver") \
     .mode("append") \
     .save()

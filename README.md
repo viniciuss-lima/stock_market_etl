@@ -1,8 +1,9 @@
 # Stock Market ETL Pipeline
 
-This project is an end-to-end ETL pipeline built with **PySpark**, **Delta Lake**, and **PostgreSQL** to process U.S. stock market data.
+An end-to-end Data Engineering project built with **PySpark**, **Delta Lake**, and **PostgreSQL** that automates the ingestion, processing, storage, and analysis of U.S. stock market data.
 
-The pipeline follows the **Medallion Architecture (Bronze → Silver → Gold)**, transforming raw financial data into a dimensional **Star Schema** for analytical workloads. It integrates data from multiple public APIs and loads the processed datasets into a PostgreSQL data warehouse.
+The pipeline follows the **Medallion Architecture (Bronze → Silver → Gold)** to transform raw financial data into a dimensional **Star Schema**, which is loaded into a **PostgreSQL Data Warehouse** for analytical workloads. Finally, SQL queries are executed against the warehouse to generate insights and visualizations using **Matplotlib**.
+
 
 # Architecture
 
@@ -14,15 +15,36 @@ The pipeline follows the **Medallion Architecture (Bronze → Silver → Gold)**
 
 ## Silver Layer (Normalized Model)
 
+The Silver layer stores cleaned and integrated datasets following **Third Normal Form (3NF)**. Company information is separated into normalized entities, while market data is standardized, validated, and enriched with derived financial metrics.
+
 <p align="center">
   <img src="images/silver_normalized.png" alt="Silver Layer" width="900"/>
 </p>
 
 ## Gold Layer (Star Schema)
 
+The Gold layer reorganizes the normalized data into a dimensional **Star Schema** optimized for analytical queries and reporting. This model is incrementally loaded into **PostgreSQL**, where it serves as the project's **Data Warehouse**.
+
 <p align="center">
   <img src="images/star_schema.png" alt="Gold Layer" width="900"/>
 </p>
+
+## Sample Analysis
+
+After loading the dimensional model into PostgreSQL, analytical SQL queries are executed through Spark JDBC to generate reports and visualizations.
+
+### Average Daily Return by Sector
+
+<p align="center">
+  <img src="images/sector_performance_analysis.png" alt="Sector Performance" width="800"/>
+</p>
+
+### Top Daily Gainers and Losers
+
+<p align="center">
+  <img src="images/daily_gainers_and_losers.png" alt="Daily Gainers and Losers" width="800"/>
+</p>
+
 
 # Technologies
 
@@ -33,37 +55,53 @@ The pipeline follows the **Medallion Architecture (Bronze → Silver → Gold)**
 - SQLAlchemy
 - Massive API
 - Nasdaq Screener API
+- Matplotlib
+
 
 # About the Project
 
-This pipeline automatically collects stock market data from the previous trading day, ensuring the dataset is always updated with the most recent closed market session.
+This project demonstrates a complete **Data Engineering workflow**, from data ingestion to analytical reporting.
 
-It retrieves Common Stocks (CS) and American Depositary Receipts (ADRC) listed on the three major U.S. stock exchanges (NYSE, NASDAQ, and NYSE American) using the Massive API.
+The pipeline automatically retrieves data from the **previous U.S. trading day** by integrating data from the **Massive API** and the **Nasdaq Screener API**.
 
-To enrich the dataset, additional company metadata such as industry, sector, IPO year, and market capitalization is retrieved from the Nasdaq Screener API.
+To define the scope of the project, only **Common Stocks (CS)** and **American Depositary Receipt Common (ADRC)** securities are considered. Additionally, the dataset is restricted to companies listed on the three largest U.S. stock exchanges:
 
-The data is processed through the Medallion Architecture, where it is stored as raw data in the Bronze layer, cleaned and normalized in the Silver layer, modeled into a Star Schema in the Gold layer, and finally loaded into a PostgreSQL data warehouse.
+- **NYSE (XNYS)**
+- **NASDAQ (XNAS)**
+- **NYSE American (XASE)**
+
+After extraction, the data is temporarily stored in a staging area and processed through the **Medallion Architecture**:
+
+- **Bronze:** stores raw API responses as Delta Lake tables.
+- **Silver:** cleans, integrates, validates, and normalizes the data into **Third Normal Form (3NF)** while deriving additional financial metrics.
+- **Gold:** transforms the normalized model into a dimensional **Star Schema** optimized for analytical workloads.
+
+Finally, the Gold layer is incrementally loaded into a **PostgreSQL Data Warehouse**, where analytical SQL queries are executed through Spark JDBC to generate business insights and visualizations with **Matplotlib**.
+
 
 # Project Structure
 
 ```text
 data
-  staging
-  bronze
-  silver
-  gold
+├── staging
+├── bronze
+├── silver
+└── gold
 
 images
-  etl_pipeline.png
-  silver_normalized.png
-  star_schema.png
+├── etl_pipeline.png
+├── silver_normalized.png
+├── star_schema.png
+├── sector_performance_analysis.png
+└── daily_gainers_and_losers.png
 
 src
-  extract.py
-  transform.py
-  load.py
-  connection.py
-  create_tables.sql
+├── extract.py
+├── transform.py
+├── load.py
+├── analysis.py
+├── connection.py
+└── create_tables.sql
 
 .env.example
 .gitignore
@@ -72,43 +110,55 @@ main.py
 README.md
 ```
 
+
 # Running the Pipeline
 
-Install dependencies:
+Install the project dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Configure your environment variables based on `.env.example`.
+Configure the environment variables using `.env.example`.
 
-Run the pipeline:
+Run the complete pipeline:
 
 ```bash
 python main.py
 ```
 
-# Current Status
+The pipeline performs the following steps:
 
-The project currently includes:
+1. Extracts stock market data from public APIs.
+2. Stores raw data in the Bronze layer.
+3. Cleans, validates, and normalizes the data in the Silver layer.
+4. Builds the Gold Star Schema.
+5. Loads the dimensional model into PostgreSQL.
+6. Executes analytical SQL queries.
+7. Automatically generates charts.
+
+
+# Features
 
 - End-to-end ETL pipeline
 - Medallion Architecture (Bronze → Silver → Gold)
 - Delta Lake storage
-- Normalized Silver data model
-- Star Schema modeling
-- PostgreSQL data warehouse
-- Incremental loading with append strategy (no overwrite)
+- Third Normal Form (3NF) normalization
+- Star Schema dimensional modeling
+- PostgreSQL Data Warehouse
+- Incremental loading with conflict handling (`ON CONFLICT DO NOTHING`)
+- Spark JDBC integration
+- Automated SQL analytics
+- Matplotlib visualizations
 - Single-command execution via `main.py`
 
-# Next Steps
 
-The ETL pipeline and data warehouse are already implemented.
+# Incremental Loading Strategy
 
-The next stage of the project is to run SQL queries on the data warehouse and use them to generate insights and visualizations from the processed stock market data.
+The project adopts a hybrid storage architecture.
 
-> **Note:** This project is designed with a hybrid architecture:
-> - The **Delta Lake layers (Bronze, Silver, Gold)** can be fully reprocessed and overwritten safely, since they are derived from raw source data.
-> - The **PostgreSQL data warehouse** is incremental and append-based, preserving historical records while avoiding duplicates through `ON CONFLICT` logic.
+The **Delta Lake** layers (Bronze, Silver, and Gold) are fully reproducible and can be safely overwritten because they are derived directly from the source data.
 
-This ensures both reprocessing flexibility in the lake layer and historical consistency in the warehouse layer.
+The **PostgreSQL Data Warehouse** uses an incremental loading strategy. Data is first written to temporary staging tables and then inserted into the dimensional model using **`ON CONFLICT DO NOTHING`**, ensuring historical consistency while preventing duplicate records.
+
+This approach combines the flexibility of a modern **Lakehouse architecture** with the reliability of a traditional **Data Warehouse**, supporting both data reprocessing and efficient analytical querying.
